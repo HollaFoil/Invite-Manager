@@ -1,9 +1,11 @@
-﻿using Discord;
-using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Discord;
+using Discord.WebSocket;
+using Discord.Commands;
 
 namespace Invite_Manager
 {
@@ -13,19 +15,28 @@ namespace Invite_Manager
         => new Startup().MainAsync().GetAwaiter().GetResult();
 
 
-        private DiscordSocketClient _client;
-
         public async Task MainAsync()
         {
-            _client = new DiscordSocketClient();
+            using (var services = ConfigureServices())
+            {
+                var client = services.GetRequiredService<DiscordSocketClient>();
 
-            _client.Log += LoggingService.LogAsync;
+                client.Log += LoggingService.LogAsync;
+                services.GetRequiredService<CommandService>().Log += LoggingService.LogAsync;
 
-            await _client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
-            await _client.StartAsync();
-
-            // Block this task until the program is closed.
-            await Task.Delay(-1);
+                await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
+                await client.StartAsync();
+                await services.GetRequiredService<CommandHandler>().InitializeAsync();
+                await Task.Delay(Timeout.Infinite);
+            }
+        }
+        private ServiceProvider ConfigureServices()
+        {
+            return new ServiceCollection()
+                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton<CommandService>()
+                .AddSingleton<CommandHandler>()
+                .BuildServiceProvider();
         }
     }
 }

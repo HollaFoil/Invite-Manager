@@ -5,48 +5,50 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
-
-public class CommandHandler
+namespace Invite_Manager
 {
-    private readonly CommandService _commands;
-    private readonly DiscordSocketClient _discord;
-    private readonly IServiceProvider _services;
-
-    public CommandHandler(IServiceProvider services)
+    public class CommandHandler
     {
-        _commands = services.GetRequiredService<CommandService>();
-        _discord = services.GetRequiredService<DiscordSocketClient>();
-        _services = services;
+        private readonly CommandService _commands;
+        private readonly DiscordSocketClient _discord;
+        private readonly IServiceProvider _services;
 
-        _commands.CommandExecuted += CommandExecutedAsync;
-        _discord.MessageReceived += MessageReceivedAsync;
-    }
+        public CommandHandler(IServiceProvider services)
+        {
+            _commands = services.GetRequiredService<CommandService>();
+            _discord = services.GetRequiredService<DiscordSocketClient>();
+            _services = services;
 
-    public async Task InitializeAsync()
-    {
-        await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
-    }
+            _commands.CommandExecuted += CommandExecutedAsync;
+            _discord.MessageReceived += MessageReceivedAsync;
+        }
 
-    public async Task MessageReceivedAsync(SocketMessage rawMessage)
-    {
-        if (!(rawMessage is SocketUserMessage message)) return;
-        if (message.Source != MessageSource.User) return;
+        public async Task InitializeAsync()
+        {
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        }
 
-        var argPos = 0;
-        if (!message.HasMentionPrefix(_discord.CurrentUser, ref argPos)) return;
+        public async Task MessageReceivedAsync(SocketMessage rawMessage)
+        {
+            if (!(rawMessage is SocketUserMessage message)) return;
+            if (message.Source != MessageSource.User) return;
 
-        var context = new SocketCommandContext(_discord, message);
-        await _commands.ExecuteAsync(context, argPos, _services);
-    }
+            var argPos = 0;
+            //if (!message.HasMentionPrefix(_discord.CurrentUser, ref argPos)) return;
 
-    public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
-    {
-        if (!command.IsSpecified)
-            return;
+            var context = new SocketCommandContext(_discord, message);
+            await _commands.ExecuteAsync(context, argPos, _services);
+        }
 
-        if (result.IsSuccess)
-            return;
+        public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
+        {
+            if (!command.IsSpecified)
+                return;
 
-        await context.Channel.SendMessageAsync($"error: {result}");
+            if (result.IsSuccess)
+                return;
+
+            await context.Channel.SendMessageAsync($"error: {result}");
+        }
     }
 }

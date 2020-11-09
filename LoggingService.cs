@@ -7,12 +7,7 @@ using System.Threading.Tasks;
 
 public class LoggingService
 {
-	public LoggingService(DiscordSocketClient client, CommandService command)
-	{
-        client.Log += LogAsync;
-		command.Log += LogAsync;
-	}
-	private Task LogAsync(LogMessage message)
+	public static Task LogAsync(LogMessage message)
 	{
 		if (message.Exception is CommandException cmdException)
 		{

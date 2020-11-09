@@ -1,33 +1,34 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Webhook;
 using Discord.WebSocket;
 using Invite_Manager.Util;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace Invite_Manager.Event.Commands
+namespace Invite_Manager.Event
 {
-	[Group("channel")]
-	public class SetChannel : ModuleBase<SocketCommandContext>
-	{
+    public class Events
+    {
         private readonly ChannelSettingsManager _config;
         private readonly DiscordSocketClient _discord;
         private readonly IServiceProvider _services;
 
-        public SetChannel(IServiceProvider services)
+        public Events(IServiceProvider services)
         {
             _config = services.GetRequiredService<ChannelSettingsManager>();
             _discord = services.GetRequiredService<DiscordSocketClient>();
             _services = services;
+
+            
         }
-
-
-        [Command("set")]
-		public async Task SetAsync()
+        public async Task UserJoined(SocketGuildUser user)
         {
-			ulong channelId = Context.Channel.Id;
-            _config.SetInviteChannel(channelId);
-			await ReplyAsync("Default channel succesfully set");
-        }
+			ulong inviteChannelId = _config.GetInviteChannel();
+			var channel = _discord.GetChannel(inviteChannelId) as IMessageChannel;
+			await channel.SendMessageAsync("Welcome {0}" + user.Mention);
+		}
 	}
 }

@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
+using Invite_Manager.Event;
+using Invite_Manager.Util;
 
 namespace Invite_Manager
 {
@@ -23,7 +25,7 @@ namespace Invite_Manager
 
                 client.Log += LoggingService.LogAsync;
                 services.GetRequiredService<CommandService>().Log += LoggingService.LogAsync;
-
+                
                 await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
                 await client.StartAsync();
                 await services.GetRequiredService<CommandHandler>().InitializeAsync();
@@ -36,6 +38,8 @@ namespace Invite_Manager
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
+                .AddSingleton<Events>()
+                .AddSingleton<ChannelSettingsManager>()
                 .BuildServiceProvider();
         }
     }

@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 namespace Invite_Manager.Event.Commands
 {
 	[Group("channel")]
-	public class SetChannel : ModuleBase<SocketCommandContext>
+	public class ChannelCommands : ModuleBase<SocketCommandContext>
 	{
         private readonly ConfigService _config;
 
-        public SetChannel(IServiceProvider services)
+        public ChannelCommands(IServiceProvider services)
         {
             _config = services.GetRequiredService<ConfigService>();
         }

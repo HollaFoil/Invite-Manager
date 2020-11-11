@@ -5,6 +5,7 @@ using System.Text;
 using Discord.Rest;
 using System.IO;
 using System.Xml.Serialization;
+using System.Runtime.InteropServices;
 
 namespace Invite_Manager.Util
 {
@@ -21,8 +22,104 @@ namespace Invite_Manager.Util
             inviterId = _inviterId;
         }
     }
+    public class User
+    {
+        public int invites;
+        public ulong inviterId;
+        public List<ulong> usersReffered;
+        public User() {
+            usersReffered = new List<ulong>();
+        }
+        public User(ulong _id)
+        {
+            inviterId = _id;
+            invites = 0;
+            usersReffered = new List<ulong>();
+        }
+    }
     public class InviteService
     {
+        public User GetUser(ulong userId)
+        {
+            List<User> data = null;
+            try
+            {
+                data = ReadFromXmlFile<List<User>>("InviteUses.xml");
+            }
+            catch (FileNotFoundException e)
+            {
+                data = new List<User>();
+            }
+            foreach (User user in data)
+            {
+                if (user.inviterId == userId) return user;
+            }
+            return null;
+        }
+        public void addBonusUserInvites(ulong userId, int amount)
+        {
+            List<User> data = null;
+            try
+            {
+                data = ReadFromXmlFile<List<User>>("InviteUses.xml");
+            }
+            catch (FileNotFoundException e)
+            {
+                data = new List<User>();
+            }
+            bool contains = false;
+            foreach (User user in data)
+            {
+                if (user.inviterId == userId)
+                {
+                    contains = true;
+                    user.invites += amount;
+                    break;
+                }
+            }
+            if (!contains)
+            {
+                User user = new User(userId);
+                user.invites = amount;
+                data.Add(user);
+            }
+            storeUserData(data);
+        }
+        public void addUserInvite(ulong inviterId, ulong joinerId)
+        {
+            List<User> data = null;
+            try
+            {
+                data = ReadFromXmlFile<List<User>>("InviteUses.xml");
+            } catch (FileNotFoundException e)
+            {
+                data = new List<User>();
+            }
+            if (data == null) data = new List<User>();
+            bool contains = false;
+            foreach (User user in data)
+            {
+                if (user.inviterId == inviterId)
+                {
+                    contains = true;
+                    user.invites++;
+                    user.usersReffered.Add(joinerId);
+                    break;
+                }
+            }
+            if (!contains)
+            {
+                User user = new User(inviterId);
+                user.invites = 1;
+                user.usersReffered.Add(joinerId);
+                data.Add(user);
+            }
+            storeUserData(data);
+        }
+        public void storeUserData(List<User> data)
+        {
+            WriteToXmlFile<List<User>>("InviteUses.xml", data);
+        }
         public void StoreInvites(IReadOnlyCollection<RestInviteMetadata> invites)
         {
             List<Invite> inviteList = new List<Invite>();

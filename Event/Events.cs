@@ -61,7 +61,8 @@ namespace Invite_Manager.Event
                 await channel.SendMessageAsync(user.Mention + " has been invited by a dark force.");
             else
             {
-                await channel.SendMessageAsync(user.Mention + "has been invited by " + inviter.Mention);
+                _inviteService.addUserInvite(inviter.Id, user.Id);
+                await channel.SendMessageAsync(user.Mention + " has been invited by " + inviter.Mention);
             }
 		}
         public async Task onReady()

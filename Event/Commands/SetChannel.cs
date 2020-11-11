@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using Invite_Manager.Util;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,23 +11,23 @@ namespace Invite_Manager.Event.Commands
 	[Group("channel")]
 	public class SetChannel : ModuleBase<SocketCommandContext>
 	{
-        private readonly ChannelSettingsManager _config;
-        private readonly DiscordSocketClient _discord;
-        private readonly IServiceProvider _services;
+        private readonly ConfigService _config;
 
         public SetChannel(IServiceProvider services)
         {
-            _config = services.GetRequiredService<ChannelSettingsManager>();
-            _discord = services.GetRequiredService<DiscordSocketClient>();
-            _services = services;
+            _config = services.GetRequiredService<ConfigService>();
         }
 
 
         [Command("set")]
-		public async Task SetAsync()
+        [RequireContext(ContextType.Guild)]
+        [RequireUserPermission(GuildPermission.ManageChannels)]
+        public async Task SetAsync()
         {
 			ulong channelId = Context.Channel.Id;
             _config.SetInviteChannel(channelId);
+            ulong guildId = Context.Guild.Id;
+            _config.SetDefaultGuild(guildId);
 			await ReplyAsync("Default channel succesfully set");
         }
 	}

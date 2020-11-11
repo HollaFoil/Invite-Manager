@@ -8,6 +8,8 @@ using Discord.WebSocket;
 using Discord.Commands;
 using Invite_Manager.Event;
 using Invite_Manager.Util;
+using Discord.Rest;
+using System.Collections.Generic;
 
 namespace Invite_Manager
 {
@@ -25,10 +27,12 @@ namespace Invite_Manager
 
                 client.Log += LoggingService.LogAsync;
                 services.GetRequiredService<CommandService>().Log += LoggingService.LogAsync;
-                
+                client.UserJoined += services.GetRequiredService<Events>().AnnounceUserJoined;
+                client.Ready += services.GetRequiredService<Events>().onReady;
                 await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
                 await client.StartAsync();
                 await services.GetRequiredService<CommandHandler>().InitializeAsync();
+                
                 await Task.Delay(Timeout.Infinite);
             }
         }
@@ -39,7 +43,8 @@ namespace Invite_Manager
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
                 .AddSingleton<Events>()
-                .AddSingleton<ChannelSettingsManager>()
+                .AddSingleton<ConfigService>()
+                .AddSingleton<InviteService>()
                 .BuildServiceProvider();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Invite_Manager.Util;
@@ -12,23 +13,62 @@ namespace Invite_Manager.Event
 {
     public class Events
     {
-        private readonly ChannelSettingsManager _config;
+        private readonly ConfigService _configService;
         private readonly DiscordSocketClient _discord;
-        private readonly IServiceProvider _services;
+        private readonly InviteService _inviteService;
+        private SocketGuild guild;
 
         public Events(IServiceProvider services)
         {
-            _config = services.GetRequiredService<ChannelSettingsManager>();
+            _configService = services.GetRequiredService<ConfigService>();
             _discord = services.GetRequiredService<DiscordSocketClient>();
-            _services = services;
-
+            _inviteService = services.GetRequiredService<InviteService>();
             
         }
-        public async Task UserJoined(SocketGuildUser user)
+        public async Task AnnounceUserJoined(SocketGuildUser user)
         {
-			ulong inviteChannelId = _config.GetInviteChannel();
-			var channel = _discord.GetChannel(inviteChannelId) as IMessageChannel;
-			await channel.SendMessageAsync("Welcome {0}" + user.Mention);
+            List<Invite> _storedInvites = _inviteService.GetStoredInvites();
+            Dictionary<string, Invite> storedInvites = new Dictionary<string, Invite>();
+            foreach (Invite invite in _storedInvites)
+                storedInvites.Add(invite.id, invite);
+            IReadOnlyCollection<RestInviteMetadata> updatedInvites = guild.GetInvitesAsync().Result;
+
+            bool found = false;
+            RestUser inviter = null;
+            foreach (RestInviteMetadata invite in updatedInvites)
+            {
+                if (storedInvites.ContainsKey(invite.Id))
+                {
+                    if (invite.Uses > storedInvites[invite.Id].uses)
+                    {
+                        inviter = invite.Inviter;
+                        found = true;
+                        break;
+                    }
+                }
+                else if (invite.Uses > 0)
+                {
+                    inviter = invite.Inviter;
+                    found = true;
+                    break;
+                }
+            }
+            _inviteService.StoreInvites(updatedInvites);
+
+            ulong inviteChannelId = _configService.GetInviteChannel();
+            var channel = _discord.GetChannel(inviteChannelId) as SocketTextChannel;
+            if (inviter == null)
+                await channel.SendMessageAsync(user.Mention + " has been invited by a dark force.");
+            else
+            {
+                await channel.SendMessageAsync(user.Mention + "has been invited by " + inviter.Mention);
+            }
 		}
-	}
+        public async Task onReady()
+        {
+            guild = _discord.GetGuild(_configService.GetDefaultGuild());
+            Task<IReadOnlyCollection<RestInviteMetadata>> invites = guild.GetInvitesAsync();
+            _inviteService.StoreInvites(invites.Result);
+        }
+    }
 }
